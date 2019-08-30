@@ -13,7 +13,8 @@ def _get_sfs_idxs(sizes:Sizes) -> List[int]:
 
 class UnetBlock(Module):
     "A quasi-UNet block, using `PixelShuffle_ICNR upsampling`."
-    def __init__(self, up_in_c:int, x_in_c:int, hook:Hook, final_div:bool=True, blur:bool=False, leaky:float=None,
+    def __init__(self, up_in_c:int, x_in_c:int, hook:Hook, final_div:bool=True, 
+                 blur:bool=False, leaky:float=None,
                  self_attention:bool=False, **kwargs):
         self.hook = hook
         self.shuf = PixelShuffle_ICNR(up_in_c, up_in_c//2, blur=blur, leaky=leaky, **kwargs)
@@ -36,7 +37,8 @@ class UnetBlock(Module):
 
 class DynamicUnet(SequentialEx):
     "Create a U-Net from a given architecture."
-    def __init__(self, encoder:nn.Module, n_classes:int, img_size:Tuple[int,int]=(256,256), blur:bool=False, blur_final=True, self_attention:bool=False,
+    def __init__(self, encoder:nn.Module, n_classes:int, img_size:Tuple[int,int]=(256,256), 
+                 blur:bool=False, blur_final=True, self_attention:bool=False,
                  y_range:Optional[Tuple[float,float]]=None,
                  last_cross:bool=True, bottle:bool=False, **kwargs):
         imsize = img_size
@@ -56,7 +58,8 @@ class DynamicUnet(SequentialEx):
             up_in_c, x_in_c = int(x.shape[1]), int(sfs_szs[idx][1])
             do_blur = blur and (not_final or blur_final)
             sa = self_attention and (i==len(sfs_idxs)-3)
-            unet_block = UnetBlock(up_in_c, x_in_c, self.sfs[i], final_div=not_final, blur=do_blur, self_attention=sa,
+            unet_block = UnetBlock(up_in_c, x_in_c, self.sfs[i], final_div=not_final, 
+                                   blur=do_blur, self_attention=sa,
                                    **kwargs).eval()
             layers.append(unet_block)
             x = unet_block(x)
@@ -64,7 +67,8 @@ class DynamicUnet(SequentialEx):
         ni = x.shape[1]
         if imsize != sfs_szs[0][-2:]: layers.append(PixelShuffle_ICNR(ni, **kwargs))
         x = PixelShuffle_ICNR(ni)(x)
-        if imsize != x.shape[-2:]: layers.append(Lambda(lambda x: F.interpolate(x, imsize, mode='nearest')))
+        if imsize != x.shape[-2:]: 
+            layers.append(Lambda(lambda x: F.interpolate(x, imsize, mode='nearest')))
         if last_cross:
             layers.append(MergeLayer(dense=True))
             ni += in_channels(encoder)
