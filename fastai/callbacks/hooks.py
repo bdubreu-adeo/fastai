@@ -9,7 +9,8 @@ __all__ = ['ActivationStats', 'Hook', 'HookCallback', 'Hooks', 'hook_output', 'h
 
 class Hook():
     "Create a hook on `m` with `hook_func`."
-    def __init__(self, m:nn.Module, hook_func:HookFunc, is_forward:bool=True, detach:bool=True):
+    def __init__(self, m:nn.Module, hook_func:HookFunc, is_forward:bool=True, 
+           detach:bool=True):
         self.hook_func,self.detach,self.stored = hook_func,detach,None
         f = m.register_forward_hook if is_forward else m.register_backward_hook
         self.hook = f(self.hook_fn)
@@ -18,8 +19,10 @@ class Hook():
     def hook_fn(self, module:nn.Module, input:Tensors, output:Tensors):
         "Applies `hook_func` to `module`, `input`, `output`."
         if self.detach:
-            input  = (o.detach() for o in input ) if is_listy(input ) else input.detach()
-            output = (o.detach() for o in output) if is_listy(output) else output.detach()
+            input  = (o.detach() for o in input ) if is_listy(input ) 
+           else input.detach()
+            output = (o.detach() for o in output) if is_listy(output) 
+           else output.detach()
         self.stored = self.hook_func(module, input, output)
 
     def remove(self):
@@ -33,7 +36,8 @@ class Hook():
 
 class Hooks():
     "Create several hooks on the modules in `ms` with `hook_func`."
-    def __init__(self, ms:Collection[nn.Module], hook_func:HookFunc, is_forward:bool=True, detach:bool=True):
+    def __init__(self, ms:Collection[nn.Module], hook_func:HookFunc, 
+    is_forward:bool=True, detach:bool=True):
         self.hooks = [Hook(m, hook_func, is_forward, detach) for m in ms]
 
     def __getitem__(self,i:int)->Hook: return self.hooks[i]
@@ -60,7 +64,8 @@ def hook_outputs(modules:Collection[nn.Module], detach:bool=True, grad:bool=Fals
     return Hooks(modules, _hook_inner, detach=detach, is_forward=not grad)
 
 class HookCallback(LearnerCallback):
-    "Callback that can be used to register hooks on `modules`. Implement the corresponding function in `self.hook`."
+    """Callback that can be used to register hooks on `modules`. 
+           Implement the corresponding function in `self.hook`."""
     def __init__(self, learn:Learner, modules:Sequence[nn.Module]=None, do_remove:bool=True):
         super().__init__(learn)
         self.modules,self.do_remove = modules,do_remove
@@ -138,8 +143,10 @@ def params_size(m: Union[nn.Module,Learner], size: tuple = (3, 64, 64))->Tuple[S
     "Pass a dummy input through the model to get the various sizes. Returns (res,x,hooks) if `full`"
     if isinstance(m, Learner):
         if m.data.is_empty:
-            raise Exception("This is an empty `Learner` and `Learner.summary` requires some data to pass through the model.")
-        ds_type = DatasetType.Train if m.data.train_dl else (DatasetType.Valid if m.data.valid_dl else DatasetType.Test)
+            raise Exception("This is an empty `Learner` and `Learner.summary` requires some data to pass through the model."
+
+        ds_type = DatasetType.Train if m.data.train_dl \
+                      else (DatasetType.Valid if m.data.valid_dl else DatasetType.Test)
         x = m.data.one_batch(ds_type=ds_type, detach=False, denorm=False)[0]
         x = [o[:1] for o in x]  if is_listy(x) else x[:1]
         m = m.model
@@ -160,7 +167,9 @@ def layers_info(m:Collection[nn.Module]) -> Collection[namedtuple]:
     func = lambda m:list(map(get_layer_name, flatten_model(m)))
     layers_names = func(m.model) if isinstance(m, Learner) else func(m)
     layers_sizes, layers_params, layers_trainable = params_size(m)
-    layer_info = namedtuple('Layer_Information', ['Layer', 'OutputSize', 'Params', 'Trainable'])
+         
+    layer_info = \
+           namedtuple('Layer_Information', ['Layer', 'OutputSize', 'Params', 'Trainable'])
     return list(map(layer_info, layers_names, layers_sizes, layers_params, layers_trainable))
 
 def model_summary(m:Learner, n:int=70):
@@ -186,8 +195,11 @@ def model_summary(m:Learner, n:int=70):
            
     res += f"Optimized with {str(m.opt_func)[25:-1].replace('>', '')}\n"
     if m.true_wd: res += f"Using true weight decay as discussed in https://www.fast.ai/2018/07/02/adam-weight-decay/ \n"
-    if "wd" in str(m.opt_func) or "weight_decay" in str(m.opt_func): res += f"\x1b[1;31m Specifying weight decay in the optimizer has no effect, Learner will overwrite \x1b[0m \n"
-    if "lr" in str(m.opt_func) or "learning_rate" in str(m.opt_func): res += f"\x1b[1;31m Specifying lr in the optimizer has no effect, pass it to fit or the defaults.lr will apply \x1b[0m \n" 
+ 
+    my_string= f"\x1b[1;31m Specifying weight decay in the optimizer has no effect, Learner will overwrite \x1b[0m \n" 
+    if "wd" in str(m.opt_func) or "weight_decay" in str(m.opt_func): res += my_string
+    my_string= f"\x1b[1;31m Specifying lr in the optimizer has no effect, pass it to fit or the defaults.lr will apply \x1b[0m \n" 
+    if "lr" in str(m.opt_func) or "learning_rate" in str(m.opt_func): res += my_string
     res += f"Loss function : {m.loss_func.__class__.__name__}\n"
     res += "=" * n + "\n"
     res += "Callbacks functions applied \n"
